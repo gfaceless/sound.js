@@ -1,0 +1,41 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	
+</body>
+
+<script src="../src/lib/zepto.js"></script>
+<script src="../src/lib/zepto-callbacks.js"></script>
+<script src="../src/lib/zepto-deferred.js"></script>
+<script src="../src/lib/howler.js"></script>
+<script src="../src/sound.js"></script>
+
+<script>
+
+// 使用例子
+// 注意mobile chrome或ios上需要触屏才能播放
+
+$(function() {
+
+	// s1、s2都是promise
+	s2 = new Sound('p3.mp3');
+	s1 = new Sound('march.mp3', {loop: true});
+
+	$.when(s1, s2)
+	.done(function() {
+		// alert("all ready");
+	})
+	.fail(function() {
+		alert('some failed');
+	})
+
+	s2.play(function() {
+		s1.play();
+	})
+	
+})
+</script>
+</html>
