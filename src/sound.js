@@ -29,7 +29,7 @@
 
 	function Sound(src, opts) {
 		opts = opts || {};
-		
+		var sound;
 		if(!wtf) {
 			$.extend(opts, {
 				urls: [src],
@@ -43,7 +43,7 @@
 					sound.endDeferred.resolve();
 				}
 			});
-			var	sound = new Howl(opts);
+			sound = new Howl(opts);
 			sound.deferred = $.Deferred();
 			sound.deferred.promise(sound);
 
