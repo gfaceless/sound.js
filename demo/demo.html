@@ -20,21 +20,31 @@
 
 $(function() {
 
+	/*s1 = new Howl({
+		urls: ['p3.mp3']
+	})
+	s2 = new Howl({
+		urls: ['march.mp3']
+	})
+	setTimeout(function () {
+		s1.play();
+		s2.play();		
+	}, 5000)*/
+	
 	// s1、s2都是promise
 	s2 = new Sound('p3.mp3');
 	s1 = new Sound('march.mp3', {loop: true});
 
 	$.when(s1, s2)
 	.done(function() {
+		s2.play(function() {})
+		s1.play();
 		// alert("all ready");
 	})
 	.fail(function() {
 		alert('some failed');
 	})
 
-	s2.play(function() {
-		s1.play();
-	})
 	
 })
 </script>

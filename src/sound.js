@@ -6,6 +6,8 @@
 // 并依赖Howler.js
 // 以后还是考虑直接扩展howler.js
 ;(function($, window) {	
+	// NOTE 安卓微信不支持多音乐同时播放
+	// ios或chrome支持
 
 	/**
 	 * 目前的接口主要有:
@@ -20,19 +22,25 @@
 	 */
 	
 	// TODO: 这个自己写的，不一定正确。待进一步考证。
-	var isWeChat = /MicroMessenger/ig.test(navigator.userAgent);
+	var isWeChat = /MicroMessenger/i.test(navigator.userAgent);	
+	
 	var ios = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
 	// 安卓的微信wtf:
-	var wtf = isWeChat && !ios;
-	console.log(wtf);
+	var wtf = isWeChat && !ios;	
 	if(typeof Howl == 'undefined') throw new Error("we rely on Howler.js");
 
-	function Sound(src, opts) {
-		opts = opts || {};
+	function Sound(src, opts) {	
+		
+		if(typeof src =='object') {			
+			opts = src;
+		} else if(typeof src == 'string') {
+			opts = opts || {};
+			opts.src = src;
+		}
 		var sound;
 		if(!wtf) {
 			$.extend(opts, {
-				urls: [src],
+				urls: [opts.src],
 				onload: function() {
 					sound.deferred.resolve();
 				}, 
@@ -55,10 +63,16 @@
 				_play.apply(sound);
 				cb && sound.endPromise.done(cb);
 			}
+			// tmp
+			sound.toggle = function() {
+				if(!wtf) {
+					sound.playing() ? sound.pause() : sound.play();
+				}
+			};
 			return sound;
 		}
 		
-		var newNode = new Audio(src);
+		var newNode = new Audio(opts.src);
 		newNode.preload = 'auto';
 		newNode.loop = opts.loop || false;
 		this.node = newNode;
@@ -91,6 +105,10 @@
 		return this;
 	};
 
+	Sound.prototype.toggle = function() {
+		this.node.paused ? this.node.play() : this.node.pause();
+	};
+
 	Sound.prototype._bind = function() {
 		var self = this;
 		var node = this.node;
@@ -113,7 +131,18 @@
 			switch (eventName) {
 				case "end":
 					_ename = "ended";
+					break;
+				case "pause":
+					_ename = "pause";
+					break;
+				case "play":
+					_ename = "playing";
+					break;
+				default: 
+					_ename = "";
 			}
+			if(!_ename) return;
+
 			node.addEventListener(_ename, function() {
 				cb();
 			}, false);
