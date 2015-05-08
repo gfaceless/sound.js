@@ -1,0 +1,58 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+	<title>Document</title>
+	<style>
+		.btn{
+			position: absolute;
+			top: 5%;
+			right: 5%;
+			width: 100px;
+			height: 100px;
+			background-image: url(btn.png);
+			background-size: contain;
+		}
+		.rotate {
+		  -webkit-animation: rotate 2s infinite linear;		 
+		  animation: rotate 2s infinite linear;
+		}
+		@-webkit-keyframes rotate {
+		  from {
+		    -webkit-transform: rotate(0deg);
+		  }
+		  to {
+		    -webkit-transform: rotate(360deg);
+		  }
+		}		
+		@keyframes rotate {
+		  from {
+		    -webkit-transform: rotate(0deg);
+		  }
+		  to {
+		    -webkit-transform: rotate(360deg);
+		  }
+		}
+	</style>
+</head>
+<body>
+	<div class="btn"></div>
+</body>
+
+<script src="vendor/zepto.js"></script>
+<script src="vendor/zepto-callbacks.js"></script>
+<script src="vendor/zepto-deferred.js"></script>
+<script src="vendor/zepto-touch.js"></script>
+<script src="vendor/howler.core.js"></script>
+<script src="../src/sound.js"></script>
+<script src="../src/sound-control.js"></script>
+
+<script>
+var control = new SControl({
+	sound: {src: "1.mp3", loop: true},
+	btn: {el: ".btn"}
+});
+
+control.sound.play();
+</script>
+</html>
