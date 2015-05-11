@@ -17,16 +17,28 @@
 	var ios = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
 	// 安卓的微信wtf:
 	var wtf = isWeChat && !ios;
+	Sound.info = {
+		isWeChat: isWeChat,
+		ios: ios,
+		wtf: wtf
+	}
 	if (typeof Howl == 'undefined') throw new Error("we rely on Howler.js");
 
+	/*var iosTouched;
+	function _tmp (e) {
+		iosTouched = true;
+		document.removeEventListener('touchstart', _tmp);
+	}
+	document.addEventListener('touchstart', _tmp, false);*/
 	// tmp
 	Howl.prototype.toggle = function() {
+		
 		this.playing() ? this.pause() : this.play();
 	};
 	thenable(Howl);
 
 	// debugging:
-	wtf = true;
+	// wtf = true;
 
 	function Sound(src, opts) {
 

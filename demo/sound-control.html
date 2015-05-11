@@ -2,9 +2,13 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+	<script src="http://192.168.5.118:8081/target/target-script-min.js#anonymous"></script>
+
 	<title>Document</title>
 	<style>
 		.btn{
+			display: none;
 			position: absolute;
 			top: 5%;
 			right: 5%;
@@ -33,26 +37,70 @@
 		    -webkit-transform: rotate(360deg);
 		  }
 		}
+		
 	</style>
 </head>
 <body>
 	<div class="btn"></div>
+	<p>注意，音乐加载后会对按钮show()，并加入相应class(这个例子是把按钮最初隐藏了，当然可以根据需要加入不同的style)</p>
+	<p>音乐播放时按钮会自动加入相应class，(这个例子就是加入rotate class)</p>
+	<p class="info-auto-play" style="display:none;">还有<span></span>ms会自动播放(not on ios)</p>
 </body>
 
-<script src="vendor/zepto.js"></script>
-<script src="vendor/zepto-callbacks.js"></script>
-<script src="vendor/zepto-deferred.js"></script>
-<script src="vendor/zepto-touch.js"></script>
-<script src="vendor/howler.core.js"></script>
+<script src="common/zepto.js"></script>
+<script src="common/zepto-touch.js"></script>
+
+<script src="../src/howler.core.js"></script>
 <script src="../src/sound.js"></script>
 <script src="../src/sound-control.js"></script>
 
 <script>
-var control = new SControl({
-	sound: {src: "1.mp3", loop: true},
-	btn: {el: ".btn"}
-});
+var ios = Sound.info.ios;
+if(ios){
+	var $mask = $('<div/>').css({position:'absolute', left: 0, top: 0, right: 0, bottom: 0, backgroundColor: "rgb(255,255,255)"}).text('loading...');
+	$('body').append($mask);
+}
 
-control.sound.play();
+//加timeout是为了更直观的看到按钮从隐藏到显示的过程
+setTimeout(function () {
+	control = new SControl({
+		sound: {src: "1.mp3", loop: true},
+		btn:  ".btn",
+		playingClass: "rotate"
+	});
+	control.sound.on('load', function() {
+		if(ios) {
+			$mask.text('点任何地方将自动播放');
+			// TODO: 考虑将这一部分放至源代码
+			var _tmp = function(e) {
+				control.sound.play();
+				$mask.remove();
+				document.removeEventListener('touchstart', _tmp);
+			};
+			document.addEventListener('touchstart', _tmp)
+			return;
+
+		}
+		$('.info-auto-play').show();
+
+		// 这些代码是仅为了演示使用
+		var time = 5000;
+		var _time = time;
+		$timer = $('.info-auto-play span');
+		$timer.text(_time);
+
+		var timer = setInterval(function() {
+			_time -= 1000;
+			$timer.text(_time);
+			if(_time === 0) clearInterval(timer);
+		}, 1000);
+
+		setTimeout(function () {
+			control.sound.play();	
+		}, time);
+	})
+
+}, 3000)
+
 </script>
 </html>
