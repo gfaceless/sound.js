@@ -1,51 +1,38 @@
 <html>
 <head>
 	<meta charset="UTF-8">
-	<title>Document</title>
+	<title>Document</title>	
 </head>
 <body>
 	
 </body>
 
-<script src="../src/lib/zepto.js"></script>
-<script src="../src/lib/zepto-callbacks.js"></script>
-<script src="../src/lib/zepto-deferred.js"></script>
-<script src="../src/lib/howler.js"></script>
+<script src="../src/vendor/howler.core.js"></script>
+<script src="common/es6-promise.js"></script>
+<!-- <script src="common/Promise.js"></script> -->
 <script src="../src/sound.js"></script>
 
 <script>
 
+
 // 使用例子
 // 注意mobile chrome或ios上需要触屏才能播放
 
-$(function() {
+s1 = new Sound('p3.mp3', {autoplay: true});
+s2 = new Sound('march.mp3', {loop: true});
 
-	/*s1 = new Howl({
-		urls: ['p3.mp3']
-	})
-	s2 = new Howl({
-		urls: ['march.mp3']
-	})
-	setTimeout(function () {
-		s1.play();
-		s2.play();		
-	}, 5000)*/
-	
-	// s1、s2都是promise
-	s2 = new Sound('p3.mp3');
-	s1 = new Sound('march.mp3', {loop: true});
+s1.on('end', function() {
+	s2.play();
+	// console.log('here');
+});
 
-	$.when(s1, s2)
-	.done(function() {
-		s2.play(function() {})
-		s1.play();
-		// alert("all ready");
-	})
-	.fail(function() {
-		alert('some failed');
-	})
-
-	
+Promise.all([ s1, s2])
+.then(function() {
+	// alert('suc');
+}, function() {
+	alert('fai');
 })
+
+
 </script>
 </html>

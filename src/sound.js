@@ -1,100 +1,96 @@
-// 这里先用jquery/zepto的promise
-// 将来会使用bluebird或是es-shim来做
-// 事实上es6和许多浏览器已经内置Promise了
-// 
-// ！！重要。该库依赖于jquery的promise (或zepto附带zepto-callbacks&zepto-promise)
-// 并依赖Howler.js
-// 以后还是考虑直接扩展howler.js
-;(function($, window) {	
+;(function(window) {
 	// NOTE 安卓微信不支持多音乐同时播放
 	// ios或chrome支持
 
 	/**
-	 * 目前的接口主要有:
-	 * var sound = new Sound(url, opts);
-	 * sound.play(callback);
-	 * sound.pause();
-	 * sound.stop();
+	 * 目前的api尽量和`howler.js`同步
+	 * var sound = new Sound(url, opts);	 
 	 * 直接看demo里的例子比较直观
 	 * 
 	 * @param {[type]} src  [地址]
 	 * @param {[type]} opts [是否循环等参数]
 	 */
-	
+
 	// TODO: 这个自己写的，不一定正确。待进一步考证。
-	var isWeChat = /MicroMessenger/i.test(navigator.userAgent);	
-	
+	var isWeChat = /MicroMessenger/i.test(navigator.userAgent);
+
 	var ios = /(iPad|iPhone|iPod)/g.test(navigator.userAgent);
 	// 安卓的微信wtf:
-	var wtf = isWeChat && !ios;	
-	if(typeof Howl == 'undefined') throw new Error("we rely on Howler.js");
+	var wtf = isWeChat && !ios;
+	if (typeof Howl == 'undefined') throw new Error("we rely on Howler.js");
 
-	function Sound(src, opts) {	
-		
-		if(typeof src =='object') {			
+	// tmp
+	Howl.prototype.toggle = function() {
+		this.playing() ? this.pause() : this.play();
+	};
+	thenable(Howl);
+
+	// debugging:
+	wtf = true;
+
+	function Sound(src, opts) {
+
+		if (typeof src == 'object') {
 			opts = src;
-		} else if(typeof src == 'string') {
+		} else if (typeof src == 'string') {
 			opts = opts || {};
 			opts.src = src;
 		}
 		var sound;
-		if(!wtf) {
-			$.extend(opts, {
-				urls: [opts.src],
-				onload: function() {
-					sound.deferred.resolve();
-				}, 
-				// iphone的end事件有些提前，挺奇怪的
-				// 是不是音乐编辑导致的？？
-				// TODO: see to it
-				onend: function() {
-					sound.endDeferred.resolve();
-				}
-			});
-			sound = new Howl(opts);
-			sound.deferred = $.Deferred();
-			sound.deferred.promise(sound);
 
-			sound.endDeferred = $.Deferred();
-			sound.endPromise = sound.endDeferred.promise();
-			var _play = sound.play;
-			// TODO: 考虑pause、重复play等情况
-			sound.play = function(cb) {
-				_play.apply(sound);
-				cb && sound.endPromise.done(cb);
-			}
-			// tmp
-			sound.toggle = function() {
-				if(!wtf) {
-					sound.playing() ? sound.pause() : sound.play();
-				}
+		// ios上的微信或mobile chrome etc:		
+		if (!wtf) {
+			opts.src = [opts.src];
+			opts.onload = function(done) {
+				// atm sound._loaded is already set to true in `howler`
+				sound._done && sound._done();
 			};
+			opts.onloaderror = function(fail) {
+				sound._failed = true;
+				sound._fail && sound._fail();
+			};
+			// iphone的end事件有些提前，挺奇怪的
+			// 是不是音乐编辑导致的？？
+			// TODO: see to it
+			opts.onend = function() {
+				// sound.endDeferred.resolve();
+			}
+
+			sound = new Howl(opts);
 			return sound;
 		}
-		
-		var newNode = new Audio(opts.src);
-		newNode.preload = 'auto';
-		newNode.loop = opts.loop || false;
-		this.node = newNode;
-		this._bind();		
-		this.deferred = $.Deferred();
-		this.deferred.promise(this);
+
+		var node = new Audio(opts.src);
+		node.preload = 'auto';
+		node.loop = opts.loop || false;
+		this.node = node;
+		this._bind();
 		// the meaning of the following line is not clear to me,
 		// just imitating what Howler.js does
-		newNode.load();
+		node.load();
+		if (opts.autoplay) {
+			this.play();
+		}
 	}
 
+	// TODO: unify return value
 	Sound.prototype.play = function(cb) {
 		var self = this;
-		this.done(function() {
+
+		// we cannot use this because `thennable` is not implemented right
+		/*this.done(function() {
 			self.node.play();
+		});*/
+	
+		// makeshift: (should use done())
+		if(this._loaded) {
+			this.node.play();
+			return this;
+		}
+		this.node.addEventListener('canplaythrough', function() {
+			this.play();
 		});
-		this.endPromise.done(function() {
-			cb && cb();
-			// TODO: figure out a better way
-			self._refreshPromise();
-		})
-		return this;
+		return this;		
 	};
 	Sound.prototype.pause = function() {
 		this.node.pause();
@@ -113,48 +109,73 @@
 		var self = this;
 		var node = this.node;
 		node.addEventListener('canplaythrough', function() {
-			self.deferred.resolve();
+			self._loaded = true;
+			self._done && self._done();
 		}, false);
 		node.addEventListener('error', function() {
-			self.deferred.reject();
+
+			self._failed = true;
+			self._fail && self._fail();
 		}, false);
+	};
 
-
-		node.addEventListener("ended", function() {
-			self.endDeferred.resolve();
-		}, false);
-
-		this._refreshPromise();
-
-		this.on = function(eventName, cb) {
-			var _ename;
-			switch (eventName) {
-				case "end":
-					_ename = "ended";
-					break;
-				case "pause":
-					_ename = "pause";
-					break;
-				case "play":
-					_ename = "playing";
-					break;
-				default: 
-					_ename = "";
-			}
-			if(!_ename) return;
-
-			node.addEventListener(_ename, function() {
-				cb();
-			}, false);
+	Sound.prototype.on = function(eventName, cb) {
+		var _ename;
+		switch (eventName) {
+			case "loaderror":
+				_ename = "error";
+				break;
+			case "load":
+				_ename = "canplaythrough";
+				break;
+			case "end":
+				_ename = "ended";
+				break;
+			case "pause":
+				_ename = "pause";
+				break;
+			case "play":
+				_ename = "playing";
+				break;
+			default:
+				_ename = "";
 		}
+		if (!_ename) return;
+		this.node.addEventListener(_ename, cb, false);
+	}
 
-	};
+	// TODO: `done` should be an array
+	// this is not right!!
+	function thenable(obj) {
+		function then(done, fail) {
+			if (this._loaded) {
+				done && done();
+				return;
+			}
+			if (this._failed) {
+				fail && fail();
+				return;
+			}
+			this._done = done;
+			this._fail = fail;
+			return this;
+		};
 
-	Sound.prototype._refreshPromise = function() {
-		this.endDeferred = $.Deferred();
-		this.endPromise = this.endDeferred.promise();
-	};
+		
 
+		function _fail(fail) {
+			this.then(undefined, fail);
+			return this;
+		};
+
+		obj.prototype.then = then;
+		obj.prototype.done = function (done) {
+			this.then(done, undefined);
+			return this;
+		};
+		obj.prototype.fail = _fail;
+	}
+	thenable(Sound);
 	window.Sound = Sound;
 
-})($, window);
+})(window);
