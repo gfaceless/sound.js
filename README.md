@@ -1,4 +1,4 @@
-Sound.js (v0.0.3)
+Sound.js (v0.0.4)
 ============
 
 简介
@@ -30,6 +30,9 @@ var s = new Sound('someurl');
 
 changelog
 ----------
+v0.0.4
+makes `then()` perform right
+
 v0.0.3
 移除了`jquery/zepto`和`deferred`等依赖。添加了`then`接口
 

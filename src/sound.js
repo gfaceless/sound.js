@@ -90,10 +90,11 @@
 		var self = this;
 
 		// we cannot use this because `thennable` is not implemented right
-		/*this.done(function() {
+		this.done(function() {
 			self.node.play();
-		});*/
+		});
 	
+		return this;
 		// makeshift: (should use done())
 		if(this._loaded) {
 			this.node.play();
@@ -156,27 +157,31 @@
 		this.node.addEventListener(_ename, cb, false);
 	}
 
-	// TODO: `done` should be an array
-	// this is not right!!
 	function thenable(obj) {
 		function then(done, fail) {
+
+			// TODO: think of a better way to organize these two:
+			this._dones = this._dones || [];
+			this._fails = this._fails || [];
+
+			if(done) this._dones.push(done);
+			if(fail) this._fails.push(fail);
+
 			if (this._loaded) {
-				done && done();
+				this._dones.forEach(function (done, i) {
+					done();
+				});
+				this._dones = [];
 				return;
 			}
 			if (this._failed) {
-				fail && fail();
+				this._fails.forEach(function (fail, i) {
+					fail();
+				});
+				this._fails = [];
 				return;
 			}
-			this._done = done;
-			this._fail = fail;
-			return this;
-		};
-
-		
-
-		function _fail(fail) {
-			this.then(undefined, fail);
+			
 			return this;
 		};
 
@@ -185,7 +190,10 @@
 			this.then(done, undefined);
 			return this;
 		};
-		obj.prototype.fail = _fail;
+		obj.prototype.fail = function (fail) {
+			this.then(undefined, fail);
+			return this;
+		};;
 	}
 	thenable(Sound);
 	window.Sound = Sound;
